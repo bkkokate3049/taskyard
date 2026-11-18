@@ -13,6 +13,9 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      DATABASE_URL: postgresql://user:password@localhost:5432/taskyard
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +30,3 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
-        env:
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
-          DATABASE_URL: postgresql://user:password@localhost:5432/taskyard
