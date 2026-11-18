@@ -10,7 +10,7 @@ describe("env validation", () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://localhost:3000");
 
     const { env } = await import("@/lib/env");
-    await expect(env.NEXT_PUBLIC_APP_URL).toBe("http://localhost:3000");
+    expect(env.NEXT_PUBLIC_APP_URL).toBe("http://localhost:3000");
   });
   it("throws when the URL is invalid", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "not-a-url");
