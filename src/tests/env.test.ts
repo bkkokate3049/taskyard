@@ -1,0 +1,21 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+describe("env validation", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllEnvs();
+  });
+
+  it("export the values when they are valid", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://localhost:3000");
+
+    const { env } = await import("@/lib/env");
+    await expect(env.NEXT_PUBLIC_APP_URL).toBe("http://localhost:3000");
+  });
+  it("throws when the URL is invalid", async () => {
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "not-a-url");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(import("@/lib/env")).rejects.toThrow("Invalid environment variables");
+  });
+});
