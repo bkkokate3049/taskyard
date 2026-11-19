@@ -16,6 +16,9 @@ jobs:
     env:
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       DATABASE_URL: postgresql://user:password@localhost:5432/taskyard
+      AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+      AUTH_GITHUB_ID: ci
+      AUTH_GITHUB_SECRET: ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
