@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { AuthButton } from "@/components/auth-button";
+import Link from "next/link";
 
 export default function HomePage() {
   return (
@@ -9,6 +10,7 @@ export default function HomePage() {
       <Suspense fallback={<p>Loading…</p>}>
         <AuthButton />
       </Suspense>
+      <Link href="/boards">Go to your boards</Link>
     </main>
   );
 }

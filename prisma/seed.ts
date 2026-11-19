@@ -9,8 +9,10 @@ const db = new PrismaClient({
 });
 
 async function main() {
-  await db.board.deleteMany();
-  await db.user.deleteMany();
+  await db.board.deleteMany({ where: { title: "Website launch" } });
+  await db.user.deleteMany({
+    where: { email: { in: ["asha@example.com", "ravi@example.com"] } },
+  });
 
   const asha = await db.user.create({
     data: { email: "asha@example.com", name: "Asha" },
@@ -18,6 +20,9 @@ async function main() {
   const ravi = await db.user.create({
     data: { email: "ravi@example.com", name: "Ravi" },
   });
+  const owner = process.env.SEED_OWNER_EMAIL
+    ? await db.user.findUnique({ where: { email: process.env.SEED_OWNER_EMAIL } })
+    : null;
 
   await db.board.create({
     data: {
@@ -26,6 +31,7 @@ async function main() {
         create: [
           { userId: asha.id, role: "OWNER" },
           { userId: ravi.id, role: "EDITOR" },
+          ...(owner ? [{ userId: owner.id, role: "OWNER" as const }] : []),
         ],
       },
       columns: {
