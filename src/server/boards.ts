@@ -12,3 +12,28 @@ export function getBoardsForUser(userId: string) {
     },
   });
 }
+export function getBoardForUser(boardId: string, userId: string) {
+  return db.board.findFirst({
+    where: { id: boardId, members: { some: { userId } } },
+    select: {
+      id: true,
+      title: true,
+      members: { where: { userId }, select: { role: true } },
+      columns: {
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          title: true,
+          cards: {
+            orderBy: { position: "asc" },
+            select: {
+              id: true,
+              title: true,
+              assignee: { select: { name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+}
