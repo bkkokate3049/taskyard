@@ -1,0 +1,18 @@
+.main {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  min-height: 100dvh;
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+}
+
+.tagline {
+  max-width: 40ch;
+  color: var(--color-text-muted);
+}

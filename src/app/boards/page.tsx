@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BoardList } from "@/features/boards/board-list";
+import styles from "./page.module.scss";
 
 export const metadata: Metadata = {
   title: "Your boards",
@@ -9,8 +10,8 @@ export const metadata: Metadata = {
 
 export default function BoardsPage() {
   return (
-    <main>
-      <h1>Your boards</h1>
+    <main className={styles.main}>
+      <h1 className={styles.title}>Your boards</h1>
       <Suspense fallback={<p>Loading boards…</p>}>
         <BoardList />
       </Suspense>
