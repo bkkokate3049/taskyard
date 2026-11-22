@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canEditBoard } from "./roles";
+import { canEditBoard, canManageBoard } from "./roles";
 
 describe("canEditBoard", () => {
   it("allows owners and editors", () => {
@@ -10,5 +10,13 @@ describe("canEditBoard", () => {
   it("rejects viewers and non-members", () => {
     expect(canEditBoard("VIEWER")).toBe(false);
     expect(canEditBoard(null)).toBe(false);
+  });
+});
+describe("can Manage Board", () => {
+  it("allows only owners", () => {
+    expect(canManageBoard("OWNER")).toBe(true);
+    expect(canManageBoard("EDITOR")).toBe(false);
+    expect(canManageBoard("VIEWER")).toBe(false);
+    expect(canManageBoard(null)).toBe(false);
   });
 });

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createBoardSchema, createCardSchema, createColumnSchema } from "./schemas";
+import {
+  createBoardSchema,
+  createCardSchema,
+  createColumnSchema,
+  deleteCardSchema,
+  renameCardSchema,
+  renameColumnSchema,
+} from "./schemas";
 
 describe("createBoardSchema", () => {
   it("trims the title", () => {
@@ -43,5 +50,20 @@ describe("createCardSchema", () => {
     expect(createCardSchema.safeParse({ boardId: "b1", title: "Fix bug" }).success).toBe(
       false,
     );
+  });
+});
+
+describe("rename and delete columns", () => {
+  it("trims a rename and delete column", () => {
+    const result = renameColumnSchema.parse({ columnId: "c1", title: "  Review  " });
+    expect(result.title).toBe("Review");
+  });
+
+  it("rejects an empty card title", () => {
+    expect(renameCardSchema.safeParse({ cardId: "K1", title: " " }).success).toBe(false);
+  });
+
+  it("requires an id to delete a card", () => {
+    expect(deleteCardSchema.safeParse({ cardId: "" }).success).toBe(false);
   });
 });

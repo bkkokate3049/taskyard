@@ -3,9 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { canEditBoard } from "@/lib/roles";
+import { canEditBoard, canManageBoard } from "@/lib/roles";
 import { getBoardRole } from "@/server/permissions";
-import { createBoardSchema, createCardSchema, createColumnSchema } from "./schemas";
+import {
+  createBoardSchema,
+  createCardSchema,
+  createColumnSchema,
+  deleteCardSchema,
+  deleteColumnSchema,
+  renameCardSchema,
+  renameColumnSchema,
+} from "./schemas";
+import type { Role } from "@/generated/prisma/enums";
 
 const POSITION_STEP = 1000;
 const MAX_COLUMNS = 20;
@@ -14,6 +23,7 @@ const MAX_CARDS_PER_COLUMN = 200;
 export type FormState = {
   error?: string;
   title?: string;
+  ok?: boolean;
 };
 
 export type CreateBoardState = FormState;
@@ -143,4 +153,131 @@ export async function createCard(
 
   revalidatePath(`/boards/${boardId}`);
   return {};
+}
+
+const NOT_FOUND = "That item no longer exists.";
+const FORBIDDEN = "You don't have permission to do that.";
+
+function checkAccess(
+  role: Role | null,
+  allowed: (role: Role | null) => boolean,
+): string | null {
+  if (role === null) return NOT_FOUND;
+  return allowed(role) ? null : FORBIDDEN;
+}
+
+export async function renameColumn(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "You must be signed in." };
+
+  const parsed = renameColumnSchema.safeParse({
+    columnId: formData.get("id"),
+    title: formData.get("title"),
+  });
+  if (!parsed.success)
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const { columnId, title } = parsed.data;
+
+  const column = await db.column.findUnique({
+    where: { id: columnId },
+    select: { boardId: true },
+  });
+  if (!column) return { error: NOT_FOUND };
+
+  const denied = checkAccess(
+    await getBoardRole(column.boardId, session.user.id),
+    canEditBoard,
+  );
+  if (denied) return { error: denied };
+
+  await db.column.updateMany({ where: { id: columnId }, data: { title } });
+  revalidatePath(`/boards/${column.boardId}`);
+  return { ok: true };
+}
+
+export async function deleteColumn(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "You must be signed in." };
+
+  const parsed = deleteColumnSchema.safeParse({ columnId: formData.get("id") });
+  if (!parsed.success) return { error: "Invalid request." };
+  const { columnId } = parsed.data;
+
+  const column = await db.column.findUnique({
+    where: { id: columnId },
+    select: { boardId: true },
+  });
+  if (!column) return { error: NOT_FOUND };
+
+  const denied = checkAccess(
+    await getBoardRole(column.boardId, session.user.id),
+    canManageBoard,
+  );
+  if (denied) return { error: denied };
+
+  await db.column.deleteMany({ where: { id: columnId } });
+  revalidatePath(`/boards/${column.boardId}`);
+  return { ok: true };
+}
+
+export async function renameCard(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "You must be signed in." };
+
+  const parsed = renameCardSchema.safeParse({
+    cardId: formData.get("id"),
+    title: formData.get("title"),
+  });
+  if (!parsed.success)
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  const { cardId, title } = parsed.data;
+
+  const card = await db.card.findUnique({
+    where: { id: cardId },
+    select: { column: { select: { boardId: true } } },
+  });
+  if (!card) return { error: NOT_FOUND };
+  const boardId = card.column.boardId;
+
+  const denied = checkAccess(await getBoardRole(boardId, session.user.id), canEditBoard);
+  if (denied) return { error: denied };
+
+  await db.card.updateMany({ where: { id: cardId }, data: { title } });
+  revalidatePath(`/boards/${boardId}`);
+  return { ok: true };
+}
+
+export async function deleteCard(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "You must be signed in." };
+
+  const parsed = deleteCardSchema.safeParse({ cardId: formData.get("id") });
+  if (!parsed.success) return { error: "Invalid request." };
+  const { cardId } = parsed.data;
+
+  const card = await db.card.findUnique({
+    where: { id: cardId },
+    select: { column: { select: { boardId: true } } },
+  });
+  if (!card) return { error: NOT_FOUND };
+  const boardId = card.column.boardId;
+
+  const denied = checkAccess(await getBoardRole(boardId, session.user.id), canEditBoard);
+  if (denied) return { error: denied };
+
+  await db.card.deleteMany({ where: { id: cardId } });
+  revalidatePath(`/boards/${boardId}`);
+  return { ok: true };
 }
