@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { canEditBoard } from "@/lib/roles";
+import { AddCardForm } from "./add-card-form";
+import { AddColumnForm } from "./add-column-form";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { auth } from "@/lib/auth";
@@ -18,6 +21,7 @@ export async function BoardView({ params }: BoardViewProps) {
 
   const board = await getBoardForUser(boardId, session.user.id);
   if (!board) notFound();
+  const canEdit = canEditBoard(board.members[0]?.role);
 
   return (
     <>
@@ -53,8 +57,20 @@ export async function BoardView({ params }: BoardViewProps) {
                 ))}
               </ul>
             )}
+            {canEdit ? (
+              <AddCardForm
+                boardId={board.id}
+                columnId={column.id}
+                columnTitle={column.title}
+              />
+            ) : null}
           </section>
         ))}
+        {canEdit ? (
+          <div className={styles.addColumn}>
+            <AddColumnForm boardId={board.id} />
+          </div>
+        ) : null}
       </div>
     </>
   );

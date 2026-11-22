@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { createBoard, type CreateBoardState } from "../../app/boards/actions";
+import { createBoard, type CreateBoardState } from "./actions";
 import styles from "./create-board-form.module.scss";
 
 const initialState: CreateBoardState = {};

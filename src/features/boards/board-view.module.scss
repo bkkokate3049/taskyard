@@ -78,3 +78,7 @@
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
+.addColumn {
+  flex: 0 0 18rem;
+  padding: var(--space-3);
+}
