@@ -1,11 +1,14 @@
 import { config } from "dotenv";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { withVerifiedSsl } from "@/lib/database-url";
 
 config({ path: ".env.local" });
 
 const db = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new PrismaPg({
+    connectionString: withVerifiedSsl(process.env.DATABASE_URL ?? ""),
+  }),
 });
 
 async function main() {

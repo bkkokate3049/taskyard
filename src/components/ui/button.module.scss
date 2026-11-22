@@ -36,3 +36,11 @@
     background: var(--color-surface-hover);
   }
 }
+.danger {
+  background: #dc2626;
+  color: #ffffff;
+
+  &:hover:not(:disabled) {
+    background: #b91c1c;
+  }
+}
