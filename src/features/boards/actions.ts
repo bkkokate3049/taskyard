@@ -11,10 +11,12 @@ import {
   createColumnSchema,
   deleteCardSchema,
   deleteColumnSchema,
+  moveCardSchema,
   renameCardSchema,
   renameColumnSchema,
 } from "./schemas";
 import type { Role } from "@/generated/prisma/enums";
+import { positionAt } from "./ordering";
 
 const POSITION_STEP = 1000;
 const MAX_COLUMNS = 20;
@@ -278,6 +280,76 @@ export async function deleteCard(
   if (denied) return { error: denied };
 
   await db.card.deleteMany({ where: { id: cardId } });
+  revalidatePath(`/boards/${boardId}`);
+  return { ok: true };
+}
+export type MoveCardResult = { ok?: boolean; error?: string };
+
+export async function moveCard(input: {
+  cardId: string;
+  toColumnId: string;
+  index: number;
+}): Promise<MoveCardResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "You must be signed in." };
+
+  const parsed = moveCardSchema.safeParse(input);
+  if (!parsed.success) return { error: "Invalid request." };
+  const { cardId, toColumnId, index } = parsed.data;
+
+  const card = await db.card.findUnique({
+    where: { id: cardId },
+    select: { column: { select: { boardId: true } } },
+  });
+  if (!card) return { error: NOT_FOUND };
+  const boardId = card.column.boardId;
+
+  const denied = checkAccess(await getBoardRole(boardId, session.user.id), canEditBoard);
+  if (denied) return { error: denied };
+
+  const target = await db.column.findFirst({
+    where: { id: toColumnId, boardId },
+    select: { id: true },
+  });
+  if (!target) return { error: NOT_FOUND };
+
+  const siblings = await db.card.findMany({
+    where: { columnId: toColumnId, id: { not: cardId } },
+    orderBy: { position: "asc" },
+    select: { id: true, position: true },
+  });
+  if (siblings.length >= MAX_CARDS_PER_COLUMN) {
+    return { error: `A column can have at most ${MAX_CARDS_PER_COLUMN} cards.` };
+  }
+
+  const at = Math.min(index, siblings.length);
+  const position = positionAt(
+    siblings.map((sibling) => sibling.position),
+    at,
+  );
+
+  try {
+    if (position === null) {
+      const orderedIds = siblings.map((sibling) => sibling.id);
+      orderedIds.splice(at, 0, cardId);
+      await db.$transaction(
+        orderedIds.map((id, i) =>
+          db.card.updateMany({
+            where: { id },
+            data: { columnId: toColumnId, position: (i + 1) * POSITION_STEP },
+          }),
+        ),
+      );
+    } else {
+      await db.card.updateMany({
+        where: { id: cardId },
+        data: { columnId: toColumnId, position },
+      });
+    }
+  } catch {
+    return { error: "Couldn't move the card. Please try again." };
+  }
+
   revalidatePath(`/boards/${boardId}`);
   return { ok: true };
 }

@@ -4,6 +4,7 @@ import {
   createCardSchema,
   createColumnSchema,
   deleteCardSchema,
+  moveCardSchema,
   renameCardSchema,
   renameColumnSchema,
 } from "./schemas";
@@ -65,5 +66,22 @@ describe("rename and delete columns", () => {
 
   it("requires an id to delete a card", () => {
     expect(deleteCardSchema.safeParse({ cardId: "" }).success).toBe(false);
+  });
+});
+
+describe("moveCardSchema", () => {
+  it("accepts a valid move", () => {
+    expect(
+      moveCardSchema.safeParse({ cardId: "a", toColumnId: "b", index: 0 }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a negative or fractional index", () => {
+    expect(
+      moveCardSchema.safeParse({ cardId: "a", toColumnId: "b", index: -1 }).success,
+    ).toBe(false);
+    expect(
+      moveCardSchema.safeParse({ cardId: "a", toColumnId: "b", index: 1.5 }).success,
+    ).toBe(false);
   });
 });

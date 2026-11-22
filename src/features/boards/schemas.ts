@@ -31,3 +31,9 @@ export const renameCardSchema = z.object({ cardId: id, title: cardTitle });
 
 export const deleteColumnSchema = z.object({ columnId: id });
 export const deleteCardSchema = z.object({ cardId: id });
+
+export const moveCardSchema = z.object({
+  cardId: id,
+  toColumnId: id,
+  index: z.number().int().min(0).max(1000),
+});
