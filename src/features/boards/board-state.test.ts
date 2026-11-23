@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { findColumnId, moveCardInColumns, type ColumnData } from "./board-state";
+import {
+  findColumnId,
+  moveCardInColumns,
+  moveColumnInColumns,
+  type ColumnData,
+} from "./board-state";
 
 const board: ColumnData[] = [
   {
@@ -48,5 +53,41 @@ describe("moveCardInColumns", () => {
   it("does not change the original board", () => {
     moveCardInColumns(board, "a", "doing", 0);
     expect(ids(board, "todo")).toEqual(["a", "b"]);
+  });
+});
+describe("moveColumnInColumns", () => {
+  const order = (columns: ColumnData[]) => columns.map((column) => column.id);
+
+  it("moves a column to the end", () => {
+    expect(order(moveColumnInColumns(board, "todo", 2))).toEqual([
+      "doing",
+      "done",
+      "todo",
+    ]);
+  });
+
+  it("moves a column to the start", () => {
+    expect(order(moveColumnInColumns(board, "done", 0))).toEqual([
+      "done",
+      "todo",
+      "doing",
+    ]);
+  });
+
+  it("clamps the index", () => {
+    expect(order(moveColumnInColumns(board, "todo", 99))).toEqual([
+      "doing",
+      "done",
+      "todo",
+    ]);
+  });
+
+  it("returns the same board for an unknown column", () => {
+    expect(moveColumnInColumns(board, "nope", 0)).toBe(board);
+  });
+
+  it("does not change the original board", () => {
+    moveColumnInColumns(board, "todo", 2);
+    expect(order(board)).toEqual(["todo", "doing", "done"]);
   });
 });

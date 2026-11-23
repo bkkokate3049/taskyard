@@ -12,6 +12,7 @@ import {
   deleteCardSchema,
   deleteColumnSchema,
   moveCardSchema,
+  moveColumnSchema,
   renameCardSchema,
   renameColumnSchema,
 } from "./schemas";
@@ -348,6 +349,63 @@ export async function moveCard(input: {
     }
   } catch {
     return { error: "Couldn't move the card. Please try again." };
+  }
+
+  revalidatePath(`/boards/${boardId}`);
+  return { ok: true };
+}
+export type MoveColumnResult = MoveCardResult;
+
+export async function moveColumn(input: {
+  columnId: string;
+  index: number;
+}): Promise<MoveColumnResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "You must be signed in." };
+
+  const parsed = moveColumnSchema.safeParse(input);
+  if (!parsed.success) return { error: "Invalid request." };
+  const { columnId, index } = parsed.data;
+
+  const column = await db.column.findUnique({
+    where: { id: columnId },
+    select: { boardId: true },
+  });
+  if (!column) return { error: NOT_FOUND };
+  const { boardId } = column;
+
+  const denied = checkAccess(await getBoardRole(boardId, session.user.id), canEditBoard);
+  if (denied) return { error: denied };
+
+  const siblings = await db.column.findMany({
+    where: { boardId, id: { not: columnId } },
+    orderBy: { position: "asc" },
+    select: { id: true, position: true },
+  });
+
+  const at = Math.min(index, siblings.length);
+  const position = positionAt(
+    siblings.map((sibling) => sibling.position),
+    at,
+  );
+
+  try {
+    if (position === null) {
+      const orderedIds = siblings.map((sibling) => sibling.id);
+      orderedIds.splice(at, 0, columnId);
+      await db.$transaction(
+        orderedIds.map((id, i) =>
+          db.column.updateMany({
+            where: { id },
+            data: { position: (i + 1) * POSITION_STEP },
+          }),
+        ),
+      );
+    } else {
+      await db.column.updateMany({ where: { id: columnId }, data: { position } });
+    }
+  } catch {
+    return { error: "Couldn't move the column. Please try again." };
   }
 
   revalidatePath(`/boards/${boardId}`);

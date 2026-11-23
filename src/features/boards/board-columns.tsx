@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  closestCenter,
   DndContext,
   DragOverlay,
   KeyboardSensor,
@@ -15,12 +16,21 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import { useState, useTransition } from "react";
-import { moveCard } from "./actions";
+import { moveCard, moveColumn } from "./actions";
 import { AddColumnForm } from "./add-column-form";
 import { BoardColumn } from "./board-column";
-import { findColumnId, moveCardInColumns, type ColumnData } from "./board-state";
+import {
+  findColumnId,
+  moveCardInColumns,
+  moveColumnInColumns,
+  type ColumnData,
+} from "./board-state";
 import styles from "./board-view.module.scss";
 
 type BoardColumnsProps = {
@@ -30,7 +40,18 @@ type BoardColumnsProps = {
   canManage: boolean;
 };
 
+type ActiveItem = { id: string; type: "card" | "column" };
+
 const collisionDetection: CollisionDetection = (args) => {
+  if (args.active.data.current?.type === "column") {
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (container) => container.data.current?.type === "column",
+      ),
+    });
+  }
+
   const pointerHits = pointerWithin(args);
   const hits = pointerHits.length > 0 ? pointerHits : rectIntersection(args);
   const cardHit = hits.find(
@@ -49,7 +70,7 @@ export function BoardColumns({
 }: BoardColumnsProps) {
   const [columns, setColumns] = useState(initialColumns);
   const [syncedFrom, setSyncedFrom] = useState(initialColumns);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [active, setActive] = useState<ActiveItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -64,7 +85,12 @@ export function BoardColumns({
   );
 
   const cards = columns.flatMap((column) => column.cards);
-  const activeCard = activeId ? cards.find((card) => card.id === activeId) : undefined;
+  const activeCard =
+    active?.type === "card" ? cards.find((card) => card.id === active.id) : undefined;
+  const activeColumn =
+    active?.type === "column"
+      ? columns.find((column) => column.id === active.id)
+      : undefined;
 
   const nameOf = (id: string | number) => {
     const key = String(id);
@@ -74,26 +100,34 @@ export function BoardColumns({
       "item"
     );
   };
+  const kindOf = (type: unknown) => (type === "column" ? "column" : "card");
 
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up card ${nameOf(active.id)}.`,
-    onDragOver: ({ active, over }) =>
-      over ? `Card ${nameOf(active.id)} is over ${nameOf(over.id)}.` : undefined,
-    onDragEnd: ({ active, over }) =>
+    onDragStart: ({ active: item }) =>
+      `Picked up ${kindOf(item.data.current?.type)} ${nameOf(item.id)}.`,
+    onDragOver: ({ active: item, over }) =>
       over
-        ? `Dropped card ${nameOf(active.id)} over ${nameOf(over.id)}.`
-        : `Dropped card ${nameOf(active.id)}.`,
-    onDragCancel: ({ active }) => `Move cancelled. Card ${nameOf(active.id)} returned.`,
+        ? `${kindOf(item.data.current?.type)} ${nameOf(item.id)} is over ${nameOf(over.id)}.`
+        : undefined,
+    onDragEnd: ({ active: item, over }) =>
+      over
+        ? `Dropped ${kindOf(item.data.current?.type)} ${nameOf(item.id)} over ${nameOf(over.id)}.`
+        : `Dropped ${kindOf(item.data.current?.type)} ${nameOf(item.id)}.`,
+    onDragCancel: ({ active: item }) =>
+      `Move cancelled. ${kindOf(item.data.current?.type)} ${nameOf(item.id)} returned.`,
   };
 
-  function handleDragStart({ active }: DragStartEvent) {
-    setActiveId(String(active.id));
+  function handleDragStart({ active: item }: DragStartEvent) {
+    setActive({
+      id: String(item.id),
+      type: item.data.current?.type === "column" ? "column" : "card",
+    });
     setError(null);
   }
 
-  function handleDragOver({ active, over }: DragOverEvent) {
-    if (!over) return;
-    const cardId = String(active.id);
+  function handleDragOver({ active: item, over }: DragOverEvent) {
+    if (!over || item.data.current?.type !== "card") return;
+    const cardId = String(item.id);
     const overId = String(over.id);
 
     setColumns((current) => {
@@ -107,7 +141,7 @@ export function BoardColumns({
       let index = target.cards.length;
       const overIndex = target.cards.findIndex((card) => card.id === overId);
       if (overIndex >= 0) {
-        const activeTop = active.rect.current.translated?.top ?? 0;
+        const activeTop = item.rect.current.translated?.top ?? 0;
         const isBelow = activeTop > over.rect.top + over.rect.height / 2;
         index = overIndex + (isBelow ? 1 : 0);
       }
@@ -115,13 +149,25 @@ export function BoardColumns({
     });
   }
 
-  function handleDragEnd({ active, over }: DragEndEvent) {
-    setActiveId(null);
-    const cardId = String(active.id);
+  function finishColumnDrag(columnId: string, overId: string | null) {
+    if (!overId || overId === columnId) return;
+    const toIndex = columns.findIndex((column) => column.id === overId);
+    if (toIndex < 0) return;
 
+    setColumns(moveColumnInColumns(columns, columnId, toIndex));
+
+    startTransition(async () => {
+      const result = await moveColumn({ columnId, index: toIndex });
+      if (result.error) {
+        setError(result.error);
+        setColumns(initialColumns);
+      }
+    });
+  }
+
+  function finishCardDrag(cardId: string, overId: string | null) {
     let next = columns;
-    if (over) {
-      const overId = String(over.id);
+    if (overId) {
       const fromColumn = findColumnId(columns, cardId);
       const toColumn = findColumnId(columns, overId);
       if (fromColumn && toColumn && fromColumn === toColumn && overId !== cardId) {
@@ -162,8 +208,19 @@ export function BoardColumns({
     });
   }
 
+  function handleDragEnd({ active: item, over }: DragEndEvent) {
+    setActive(null);
+    const overId = over ? String(over.id) : null;
+
+    if (item.data.current?.type === "column") {
+      finishColumnDrag(String(item.id), overId);
+    } else {
+      finishCardDrag(String(item.id), overId);
+    }
+  }
+
   function handleDragCancel() {
-    setActiveId(null);
+    setActive(null);
     setColumns(initialColumns);
   }
 
@@ -185,15 +242,20 @@ export function BoardColumns({
       ) : null}
 
       <div className={styles.columns} aria-busy={isPending}>
-        {columns.map((column) => (
-          <BoardColumn
-            key={column.id}
-            boardId={boardId}
-            column={column}
-            canEdit={canEdit}
-            canManage={canManage}
-          />
-        ))}
+        <SortableContext
+          items={columns.map((column) => column.id)}
+          strategy={horizontalListSortingStrategy}
+        >
+          {columns.map((column) => (
+            <BoardColumn
+              key={column.id}
+              boardId={boardId}
+              column={column}
+              canEdit={canEdit}
+              canManage={canManage}
+            />
+          ))}
+        </SortableContext>
         {canEdit ? (
           <div className={styles.addColumn}>
             <AddColumnForm boardId={boardId} />
@@ -203,6 +265,11 @@ export function BoardColumns({
 
       <DragOverlay>
         {activeCard ? <div className={styles.overlay}>{activeCard.title}</div> : null}
+        {activeColumn ? (
+          <div className={styles.overlay}>
+            {activeColumn.title} ({activeColumn.cards.length})
+          </div>
+        ) : null}
       </DragOverlay>
     </DndContext>
   );

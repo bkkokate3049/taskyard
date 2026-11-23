@@ -37,3 +37,7 @@ export const moveCardSchema = z.object({
   toColumnId: id,
   index: z.number().int().min(0).max(1000),
 });
+export const moveColumnSchema = z.object({
+  columnId: id,
+  index: z.number().int().min(0).max(100),
+});
