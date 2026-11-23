@@ -33,3 +33,15 @@ export function moveCardInColumns(
     };
   });
 }
+export function moveColumnInColumns(
+  columns: ColumnData[],
+  columnId: string,
+  toIndex: number,
+): ColumnData[] {
+  const column = columns.find((item) => item.id === columnId);
+  if (!column) return columns;
+
+  const remaining = columns.filter((item) => item.id !== columnId);
+  const index = Math.max(0, Math.min(toIndex, remaining.length));
+  return [...remaining.slice(0, index), column, ...remaining.slice(index)];
+}

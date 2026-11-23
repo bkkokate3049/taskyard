@@ -1,7 +1,11 @@
 "use client";
 
-import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { deleteColumn, renameColumn } from "./actions";
 import { AddCardForm } from "./add-card-form";
 import { ConfirmDeleteForm } from "./confirm-delete-form";
@@ -18,20 +22,51 @@ type BoardColumnProps = {
 };
 
 export function BoardColumn({ boardId, column, canEdit, canManage }: BoardColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: column.id,
-    data: { type: "column" },
-  });
-  const dropZoneClasses = [styles.dropZone, isOver ? styles.over : ""]
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+    active,
+  } = useSortable({ id: column.id, data: { type: "column" }, disabled: !canEdit });
+
+  const isCardOver = isOver && active?.data.current?.type === "card";
+  const columnClasses = [styles.column, isDragging ? styles.dragging : ""]
+    .filter(Boolean)
+    .join(" ");
+  const dropZoneClasses = [styles.dropZone, isCardOver ? styles.over : ""]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <section className={styles.column} aria-labelledby={`column-${column.id}`}>
-      <h2 id={`column-${column.id}`} className={styles.columnTitle}>
-        {column.title}
-        <span className={styles.count}>{column.cards.length}</span>
-      </h2>
+    <section
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={columnClasses}
+      aria-labelledby={`column-${column.id}`}
+    >
+      <div className={styles.columnHeader}>
+        <h2 id={`column-${column.id}`} className={styles.columnTitle}>
+          {column.title}
+          <span className={styles.count}>{column.cards.length}</span>
+        </h2>
+        {canEdit ? (
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            className={styles.handle}
+            {...attributes}
+            {...listeners}
+            aria-label={`Move column ${column.title}`}
+          >
+            ⠿
+          </button>
+        ) : null}
+      </div>
 
       {canEdit ? (
         <div className={styles.tools}>
@@ -53,7 +88,7 @@ export function BoardColumn({ boardId, column, canEdit, canManage }: BoardColumn
         </div>
       ) : null}
 
-      <div ref={setNodeRef} className={dropZoneClasses}>
+      <div className={dropZoneClasses}>
         <SortableContext
           items={column.cards.map((card) => card.id)}
           strategy={verticalListSortingStrategy}
