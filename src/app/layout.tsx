@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.scss";
 import { env } from "@/lib/env";
@@ -22,7 +24,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <SiteHeader />
+        <div id="main-content" tabIndex={-1}>
+          {children}
+        </div>
+        <SiteFooter />
+      </body>
     </html>
   );
 }
