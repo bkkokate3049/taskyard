@@ -16,7 +16,8 @@
     "postinstall": "prisma generate",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test",
     "db:seed": "prisma db seed",
-    "db:role": "tsx prisma/set-role.ts"
+    "db:role": "tsx prisma/set-role.ts",
+    "db:seed:perf": "tsx prisma/seed-perf.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs}": [
