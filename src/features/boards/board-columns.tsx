@@ -6,8 +6,6 @@ import {
   DragOverlay,
   KeyboardSensor,
   PointerSensor,
-  pointerWithin,
-  rectIntersection,
   useSensor,
   useSensors,
   type Announcements,
@@ -21,7 +19,7 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { moveCard, moveColumn } from "./actions";
 import { AddColumnForm } from "./add-column-form";
 import { BoardColumn } from "./board-column";
@@ -32,6 +30,7 @@ import {
   type ColumnData,
 } from "./board-state";
 import styles from "./board-view.module.scss";
+import { cardCollisionDetection } from "./collision";
 
 type BoardColumnsProps = {
   boardId: string;
@@ -51,15 +50,7 @@ const collisionDetection: CollisionDetection = (args) => {
       ),
     });
   }
-
-  const pointerHits = pointerWithin(args);
-  const hits = pointerHits.length > 0 ? pointerHits : rectIntersection(args);
-  const cardHit = hits.find(
-    (hit) =>
-      args.droppableContainers.find((container) => container.id === hit.id)?.data.current
-        ?.type === "card",
-  );
-  return cardHit ? [cardHit] : hits;
+  return cardCollisionDetection(args);
 };
 
 export function BoardColumns({
@@ -84,7 +75,7 @@ export function BoardColumns({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const cards = columns.flatMap((column) => column.cards);
+  const cards = useMemo(() => columns.flatMap((column) => column.cards), [columns]);
   const activeCard =
     active?.type === "card" ? cards.find((card) => card.id === active.id) : undefined;
   const activeColumn =
