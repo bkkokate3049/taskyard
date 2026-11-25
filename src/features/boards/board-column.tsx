@@ -13,6 +13,7 @@ import { RenameForm } from "./rename-form";
 import { SortableCard } from "./sortable-card";
 import type { ColumnData } from "./board-state";
 import styles from "./board-view.module.scss";
+import { memo } from "react";
 
 type BoardColumnProps = {
   boardId: string;
@@ -21,7 +22,12 @@ type BoardColumnProps = {
   canManage: boolean;
 };
 
-export function BoardColumn({ boardId, column, canEdit, canManage }: BoardColumnProps) {
+export const BoardColumn = memo(function BoardColumn({
+  boardId,
+  column,
+  canEdit,
+  canManage,
+}: BoardColumnProps) {
   const {
     attributes,
     listeners,
@@ -115,4 +121,4 @@ export function BoardColumn({ boardId, column, canEdit, canManage }: BoardColumn
       ) : null}
     </section>
   );
-}
+});

@@ -7,6 +7,7 @@ import { ConfirmDeleteForm } from "./confirm-delete-form";
 import { RenameForm } from "./rename-form";
 import type { CardData } from "./board-state";
 import styles from "./board-view.module.scss";
+import { memo } from "react";
 
 type SortableCardProps = {
   card: CardData;
@@ -14,7 +15,11 @@ type SortableCardProps = {
   canEdit: boolean;
 };
 
-export function SortableCard({ card, columnId, canEdit }: SortableCardProps) {
+export const SortableCard = memo(function SortableCard({
+  card,
+  columnId,
+  canEdit,
+}: SortableCardProps) {
   const {
     attributes,
     listeners,
@@ -70,4 +75,4 @@ export function SortableCard({ card, columnId, canEdit }: SortableCardProps) {
       ) : null}
     </li>
   );
-}
+});
