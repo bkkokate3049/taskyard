@@ -39,6 +39,7 @@ export async function BoardView({ params }: BoardViewProps) {
         <Link href="/boards">Back to boards</Link>
         <h1 className={styles.title}>{board.title}</h1>
         <span className={styles.badge}>{role}</span>
+        <Link href={`/boards/${board.id}/members`}>Members</Link>
       </header>
 
       <BoardColumns
