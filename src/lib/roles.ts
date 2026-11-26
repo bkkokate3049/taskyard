@@ -7,3 +7,8 @@ export function canEditBoard(role: Role | null | undefined): boolean {
 export function canManageBoard(role: Role | null | undefined): boolean {
   return role === "OWNER";
 }
+export const roleLabels: Record<Role, string> = {
+  OWNER: "Owner",
+  EDITOR: "Editor",
+  VIEWER: "Viewer",
+};
