@@ -1,0 +1,19 @@
+.track {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 1000;
+  height: 3px;
+  pointer-events: none;
+}
+
+.bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), #0ea5e9);
+  box-shadow: 0 0 8px var(--color-primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}

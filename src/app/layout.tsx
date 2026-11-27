@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { NavigationProgress } from "@/components/navigation-progress";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.scss";
 import { env } from "@/lib/env";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +27,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

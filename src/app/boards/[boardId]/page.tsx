@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BoardView } from "@/features/boards/board-view";
 import styles from "./page.module.scss";
+import { BoardSkeleton } from "@/features/boards/board-skeleton";
 
 export const metadata: Metadata = {
   title: "Board",
@@ -15,7 +16,7 @@ type BoardPageProps = {
 export default function BoardPage({ params }: BoardPageProps) {
   return (
     <main className={styles.main}>
-      <Suspense fallback={<p>Loading board…</p>}>
+      <Suspense fallback={<BoardSkeleton />}>
         <BoardView params={params} />
       </Suspense>
     </main>
