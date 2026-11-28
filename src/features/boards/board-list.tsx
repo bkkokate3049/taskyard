@@ -7,7 +7,6 @@ import Link from "next/link";
 
 export async function BoardList() {
   await connection();
-  await new Promise((resolve) => setTimeout(resolve, 2000));
   const session = await auth();
   if (!session?.user?.id) redirect("/");
 
