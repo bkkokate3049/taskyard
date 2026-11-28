@@ -9,6 +9,7 @@ import { getBoardMembers } from "@/server/members";
 import { removeMember } from "./actions";
 import { MemberRoleForm } from "./member-role-form";
 import styles from "./members-view.module.scss";
+import { InviteSection } from "../invites/invite-section";
 
 type MembersViewProps = {
   params: Promise<{ boardId: string }>;
@@ -97,6 +98,7 @@ export async function MembersView({ params }: MembersViewProps) {
           );
         })}
       </ul>
+      {canManage ? <InviteSection boardId={board.id} /> : null}
     </>
   );
 }

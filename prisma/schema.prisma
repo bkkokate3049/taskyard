@@ -27,9 +27,10 @@ model User {
   updatedAt     DateTime  @updatedAt
   emailVerified DateTime?
 
-  memberships   BoardMember[]
-  assignedCards Card[]        @relation("CardAssignee")
-  accounts      Account[]
+  memberships    BoardMember[]
+  assignedCards  Card[]        @relation("CardAssignee")
+  accounts       Account[]
+  createdInvites Invite[]      @relation("InviteCreator")
 }
 
 model Board {
@@ -40,6 +41,7 @@ model Board {
 
   members BoardMember[]
   columns Column[]
+  invites Invite[]
 }
 
 model BoardMember {
@@ -106,4 +108,22 @@ model Account {
 
   @@unique([provider, providerAccountId])
   @@index([userId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  boardId     String
+  role        Role
+  createdById String?
+  expiresAt   DateTime
+  maxUses     Int
+  usedCount   Int       @default(0)
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  board     Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("InviteCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([boardId])
 }
